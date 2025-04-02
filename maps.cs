@@ -203,7 +203,6 @@ public partial class Plugin
                     ApproachableEulerAngle = new Vector3(0, 0, 0)
                 }
             },
-            
         };
     }
 

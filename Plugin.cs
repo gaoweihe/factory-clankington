@@ -7,6 +7,8 @@ using UnityEngine;
 
 using WindowsInput;
 using WindowsInput.Native;
+using System.Collections;
+using System.Reflection;
 
 namespace factory_clankington;
 
@@ -29,26 +31,6 @@ public partial class Plugin : BaseUnityPlugin
     private VirtualKeyCode key_pickdrop = VirtualKeyCode.VK_X;
     private VirtualKeyCode key_throwchop = VirtualKeyCode.VK_Z;
 
-
-    //private Dictionary<string, string> operable_object_names = new Dictionary<string, string>
-    //{
-    //    // operable_object_positions
-    //    { "egg_dispenser", "DLC08_dispenser_crate_circus" },
-    //    { "chocolate_dispenser", "DLC08_dispenser_crate_circus (1)" },
-    //    { "cranberry_dispenser", "DLC08_dispenser_crate_circus (2)" },
-    //    { "bun_dispenser", "DLC08_dispenser_crate_circus (3)" },
-    //    { "onion_dispenser", "DLC08_dispenser_crate_circus (4)" },
-    //    { "sausage_dispenser", "DLC08_dispenser_crate_circus (5)" },
-    //    { "flour_dispenser", "DLC08_dispenser_crate_circus (7)" },
-    //    { "condiment_dispenser", "DLC08_condiment_dispenser" },
-    //    { "condiment_button", "p_dlc08_button_Condiments" },
-    //    // countertops
-    //    // top right
-    //    { "tr_countertop_1", "DLC08_countertop_01_chopping_circus (7)" },
-    //    { "tr_countertop_2", "DLC08_countertop_01_standard_circus (24)"},
-    //    { "tr_countertop_3", "DLC08_countertop_01_chopping_circus (5)" },
-    //};
-
     private Dictionary<string, GameObject> operable_objects = new Dictionary<string, GameObject> { };
     private Dictionary<string, string> chef_names = new Dictionary<string, string>
     {
@@ -58,82 +40,6 @@ public partial class Plugin : BaseUnityPlugin
     private string controlling_chef_name = "player_2";
     private Dictionary<string, GameObject> chefs = new Dictionary<string, GameObject> { };
     private GameObject controlling_chef;
-
-    //private Dictionary<string, Dictionary<string, Vector3>> operable_object_positions = new Dictionary<string, Dictionary<string, Vector3>>
-    //{
-    //    {
-    //        "EggDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(30.0f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(30.0f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "ChocolateDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(27.6f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(27.6f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "CranberryDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(26.4f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(26.4f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "BunDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(10.8f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(10.8f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "OnionDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(13.2f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(13.2f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "SausageDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(14.4f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(14.4f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "FlourDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(31.2f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(31.2f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "CondimentDispenser", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(20.4f, 0.0f, -10.8f) },
-    //            { "ApproachablePosition", new Vector3(20.4f, 0.0f, -11.8f) },
-    //            { "EulerAngles", new Vector3(0.0f, 0.0f, 0.0f) },
-    //        }
-    //    },
-    //    {
-    //        "CondimentButton", new Dictionary<string, Vector3>
-    //        {
-    //            { "Position", new Vector3(20.4f, 0.0f, -15.6f) },
-    //            { "ApproachablePosition", new Vector3(20.4f, 0.0f, -14.6f) },
-    //            { "EulerAngles", new Vector3(0.0f, 180.0f, 0.0f) },
-    //        }
-    //    }
-    //};
 
     //private ConfigEntry<string> magic;
     private void Awake()
@@ -149,8 +55,7 @@ public partial class Plugin : BaseUnityPlugin
         init_config();
 
         InvokeRepeating("main_loop", 0.0f, 0.2f);
-        // InvokeRepeating("assembly_line", 0.0f, 5f);
-        InvokeRepeating("execute_ops", 0.0f, 0.2f);
+        InvokeRepeating("execute_ops", 0.0f, 0.3f);
     }
 
     private void init_config()
@@ -165,7 +70,8 @@ public partial class Plugin : BaseUnityPlugin
         if (assembly_line_task_queue.Count == 0)
         {
             assembly_line_donuts();
-            assembly_line_hotdogs();
+            assembly_line_sausages();
+            assembly_line_onions();
         }
     }
 
@@ -174,15 +80,21 @@ public partial class Plugin : BaseUnityPlugin
 
     }
 
+    private bool execute_ops_result = true; 
     void execute_ops()
     {
         if (game_on == true)
         {
             if (assembly_line_task_queue.Count > 0)
             {
-                Action next_task = assembly_line_task_queue.Dequeue();
+                Action next_task = assembly_line_task_queue.Peek();
                 Logger.LogInfo("Next task: " + next_task.Method.Name);
                 next_task?.Invoke();
+
+                if (execute_ops_result == true)
+                {
+                    assembly_line_task_queue.Dequeue();
+                }
             }
             else
             {
@@ -191,16 +103,27 @@ public partial class Plugin : BaseUnityPlugin
         }
     }
 
+    private void OnGameOff()
+    {
+        assembly_line_task_queue.Clear();
+        Logger.LogInfo("Game off.");
+    }
+
+    private void OnGameOn() 
+    {
+        Logger.LogInfo("Game on.");
+        InitializeObjects();
+    }
+
     private void main_loop()
     {
         if (timerPanel == null)
         {
             if (game_on == true)
             {
-                Logger.LogInfo("Game off.");
+                game_on = false;
+                OnGameOff();
             }
-            game_on = false;
-            assembly_line_task_queue.Clear();
 
             foreach (GameObject obj in GameObject.FindObjectsOfType<GameObject>())
             {
@@ -219,9 +142,7 @@ public partial class Plugin : BaseUnityPlugin
             if (game_on == false)
             {
                 game_on = true;
-                Logger.LogInfo("Game on.");
-                assembly_line(); 
-                InitializeObjects();
+                OnGameOn();
             }
         }
         else if (textComponent.text.Equals("00:00"))
@@ -229,7 +150,7 @@ public partial class Plugin : BaseUnityPlugin
             if (game_on == true)
             {
                 game_on = false;
-                Logger.LogInfo("Game off.");
+                OnGameOff();
             }
         }
     }
@@ -378,9 +299,64 @@ public partial class Plugin : BaseUnityPlugin
         chef_throwtowards(direction);
     }
 
+    private GameObject get_object_by_alias(string alias)
+    {
+        string object_name = Maps.factory[alias].Name;
+        GameObject target = GameObject.Find(object_name);
+        return target; 
+    }
+
+    private bool check_object_empty(GameObject target_object)
+    {
+        Transform attachPointTransform = target_object.transform.Find("AttachPoint");
+        GameObject attachPoint = attachPointTransform?.gameObject;
+        int childCount = attachPoint?.transform.childCount ?? 0;
+        if (childCount == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private bool check_object_empty(string target_alias)
+    {
+        GameObject target_object = get_object_by_alias(target_alias);
+        bool result = check_object_empty(target_object);
+        return result; 
+    }
+
+    private void chef_wait_until(string target_alias, string target_status)
+    {
+        assembly_line_task_queue.Enqueue(() => {
+
+            if (target_status.Equals("empty"))
+            {
+                bool empty = check_object_empty(target_alias);
+                if (empty == true)
+                {
+                    execute_ops_result = true;
+                }
+                else
+                {
+                    execute_ops_result = false;
+                }
+            }
+            else
+            {
+                execute_ops_result = false;
+            }
+
+        });
+    }
+    
     private void assembly_line_donuts()
     {
+        chef_wait_until("tr_countertop_3", "empty");
         chef_goget_puton("cranberry_dispenser", "tr_countertop_3");
+        chef_wait_until("tr_countertop_2", "empty");
         chef_goget_puton("chocolate_dispenser", "tr_countertop_2");
 
         chef_goget("flour_dispenser");
@@ -396,10 +372,23 @@ public partial class Plugin : BaseUnityPlugin
         chef_goget_throwtowards("egg_dispenser", "l");
     }
 
-    private void assembly_line_hotdogs()
+    private void assembly_line_sausages()
     {
+        chef_wait_until("tl_countertop_1", "empty");
         chef_goget_throwtowards("sausage_dispenser", "r");
+        chef_wait_until("tl_countertop_1", "empty");
         chef_goget_throwtowards("sausage_dispenser", "r");
+    }
+
+    private void assembly_line_onions()
+    {
+        chef_wait_until("tl_countertop_1", "empty");
+        chef_goget_puton("onion_dispenser", "tl_countertop_1");
+        chef_throwchop();
+
+        chef_wait_until("tl_countertop_1", "empty");
+        chef_goget_puton("onion_dispenser", "tl_countertop_1");
+        chef_throwchop();
     }
 
 }
