@@ -55,7 +55,7 @@ public partial class Plugin : BaseUnityPlugin
         init_config();
 
         InvokeRepeating("main_loop", 0.0f, 0.2f);
-        InvokeRepeating("execute_ops", 0.0f, 0.3f);
+        InvokeRepeating("execute_ops", 0.0f, 0.15f);
     }
 
     private void init_config()
@@ -72,6 +72,9 @@ public partial class Plugin : BaseUnityPlugin
             assembly_line_donuts();
             assembly_line_sausages();
             assembly_line_onions();
+            assembly_line_buns();
+            assembly_line_sausages();
+            assembly_line_buns();
         }
     }
 
@@ -306,7 +309,7 @@ public partial class Plugin : BaseUnityPlugin
         return target; 
     }
 
-    private bool check_object_empty(GameObject target_object)
+    private bool check_countertop_clear(GameObject target_object)
     {
         Transform attachPointTransform = target_object.transform.Find("AttachPoint");
         GameObject attachPoint = attachPointTransform?.gameObject;
@@ -321,22 +324,86 @@ public partial class Plugin : BaseUnityPlugin
         }
     }
 
-    private bool check_object_empty(string target_alias)
+    private bool check_countertop_clear(string target_alias)
     {
         GameObject target_object = get_object_by_alias(target_alias);
-        bool result = check_object_empty(target_object);
+        bool result = check_countertop_clear(target_object);
         return result; 
     }
 
-    private void chef_wait_until(string target_alias, string target_status)
+    private void chef_wait_countertop(string target_alias, string target_status)
     {
         assembly_line_task_queue.Enqueue(() => {
 
             if (target_status.Equals("empty"))
             {
-                bool empty = check_object_empty(target_alias);
+                bool empty = check_countertop_clear(target_alias);
                 if (empty == true)
                 {
+                    execute_ops_result = true;
+                }
+                else
+                {
+                    execute_ops_result = false;
+                }
+            }
+            else if (target_status.Equals("engaged"))
+            {
+                bool empty = check_countertop_clear(target_alias);
+                if (empty == false)
+                {
+                    // TODO: check engaged object type
+                    execute_ops_result = true;
+                }
+                else
+                {
+                    execute_ops_result = false;
+                }
+            }
+            else
+            {
+                execute_ops_result = false;
+            }
+
+        });
+    }
+
+    // TODO: implement
+    private bool check_pot_empty(GameObject target_object)
+    {
+        return false; 
+    }
+
+    // TODO: implement
+    private bool check_pot_empty(string target_alias)
+    {
+        GameObject target_object = get_object_by_alias(target_alias);
+        bool result = check_pot_empty(target_object);
+        return result;
+    }
+
+    private void chef_wait_pot(string target_alias, string target_status)
+    {
+        assembly_line_task_queue.Enqueue(() => {
+
+            if (target_status.Equals("empty"))
+            {
+                bool empty = check_countertop_clear(target_alias);
+                if (empty == true)
+                {
+                    execute_ops_result = true;
+                }
+                else
+                {
+                    execute_ops_result = false;
+                }
+            }
+            else if (target_status.Equals("engaged"))
+            {
+                bool empty = check_countertop_clear(target_alias);
+                if (empty == false)
+                {
+                    // TODO: check engaged object type
                     execute_ops_result = true;
                 }
                 else
@@ -354,9 +421,9 @@ public partial class Plugin : BaseUnityPlugin
     
     private void assembly_line_donuts()
     {
-        chef_wait_until("tr_countertop_3", "empty");
+        chef_wait_countertop("tr_countertop_3", "empty");
         chef_goget_puton("cranberry_dispenser", "tr_countertop_3");
-        chef_wait_until("tr_countertop_2", "empty");
+        chef_wait_countertop("tr_countertop_2", "empty");
         chef_goget_puton("chocolate_dispenser", "tr_countertop_2");
 
         chef_goget("flour_dispenser");
@@ -374,21 +441,36 @@ public partial class Plugin : BaseUnityPlugin
 
     private void assembly_line_sausages()
     {
-        chef_wait_until("tl_countertop_1", "empty");
+        chef_wait_countertop("tl_countertop_1", "empty");
         chef_goget_throwtowards("sausage_dispenser", "r");
-        chef_wait_until("tl_countertop_1", "empty");
+        chef_wait_countertop("tl_countertop_1", "empty");
         chef_goget_throwtowards("sausage_dispenser", "r");
     }
 
     private void assembly_line_onions()
     {
-        chef_wait_until("tl_countertop_1", "empty");
+        chef_wait_countertop("tl_countertop_1", "empty");
         chef_goget_puton("onion_dispenser", "tl_countertop_1");
         chef_throwchop();
 
-        chef_wait_until("tl_countertop_1", "empty");
+        chef_wait_countertop("tl_countertop_1", "empty");
         chef_goget_puton("onion_dispenser", "tl_countertop_1");
         chef_throwchop();
     }
 
+    private void assembly_line_buns()
+    {
+        chef_wait_countertop("tl_countertop_1", "empty");
+        chef_goget_puton("bun_dispenser", "tl_countertop_1");
+        chef_throwchop();
+
+        chef_wait_countertop("tl_countertop_1", "empty");
+        chef_goget_puton("bun_dispenser", "tl_countertop_1");
+        chef_throwchop();
+    }
+
+    private void assembly_line_serve()
+    {
+
+    }
 }
