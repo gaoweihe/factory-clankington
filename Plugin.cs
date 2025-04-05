@@ -7,8 +7,7 @@ using UnityEngine;
 
 using WindowsInput;
 using WindowsInput.Native;
-using System.Collections;
-using System.Reflection;
+using HarmonyLib;
 
 namespace factory_clankington;
 
@@ -21,8 +20,36 @@ public static class PluginInfo
 }
 
 [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
-public partial class Plugin : BaseUnityPlugin
+public partial class FcPlugin : BaseUnityPlugin
 {
+    public static event Action<string> OnNewOrderAdded;
+    public static event Action<string> OnNewLevelInitialized;
+
+    public static void RaiseNewOrderAdded(string orderName)
+    {
+        OnNewOrderAdded?.Invoke(orderName);
+    }
+
+    public static void RaiseLevelInitialized(string levelName)
+    {
+        OnNewLevelInitialized?.Invoke(levelName);
+    }
+
+    private void HandleNewOrderAdded(string orderName)
+    {
+        Logger.LogInfo($"New order added: {orderName}");
+        active_orders.AddItem(orderName);
+    }
+
+    private void HandleNewLevelInitialized(string levelName)
+    {
+        Logger.LogInfo($"New level initialized: {levelName}");
+        current_level_name = levelName;
+    }
+
+    private string[] active_orders;
+    private string[] present_ingredients; 
+
     internal static new ManualLogSource Logger;
 
     private bool game_on = false;
@@ -31,7 +58,8 @@ public partial class Plugin : BaseUnityPlugin
     private VirtualKeyCode key_pickdrop = VirtualKeyCode.VK_X;
     private VirtualKeyCode key_throwchop = VirtualKeyCode.VK_Z;
 
-    private Dictionary<string, GameObject> operable_objects = new Dictionary<string, GameObject> { };
+    private string current_level_name; 
+
     private Dictionary<string, string> chef_names = new Dictionary<string, string>
     {
         { "player_1", "Player 1" },
@@ -41,29 +69,54 @@ public partial class Plugin : BaseUnityPlugin
     private Dictionary<string, GameObject> chefs = new Dictionary<string, GameObject> { };
     private GameObject controlling_chef;
 
+    private ConfigEntry<bool> configPluginEnabled;
+
+    private static Harmony _harmony;
+
     //private ConfigEntry<string> magic;
     private void Awake()
     {
         Logger = base.Logger;
-        Logger.LogInfo("Plugin awake.");
+        Logger.LogInfo("FcPlugin awake.");
+
+        try
+        {
+            _harmony = new Harmony(PluginInfo.PLUGIN_GUID);
+            _harmony.PatchAll();
+            Logger.LogInfo("Harmony patching complete.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Harmony patching failed: {ex}");
+        }
+        
+        // events
+        FcPlugin.OnNewOrderAdded += HandleNewOrderAdded;
+        FcPlugin.OnNewLevelInitialized += HandleNewLevelInitialized;
     }
 
     private void OnEnable()
     {
-        Logger.LogInfo("Plugin enabled.");
+        Logger.LogInfo("FcPlugin enabled.");
 
         init_config();
 
         InvokeRepeating("main_loop", 0.0f, 0.2f);
-        InvokeRepeating("execute_ops", 0.0f, 0.15f);
+    }
+
+    private void OnDestroy()
+    {
+        _harmony.UnpatchSelf();
     }
 
     private void init_config()
     {
-        //magic = Config.Bind("General", "Magic", "Hello, world!", "Magic words.");
+        configPluginEnabled = Config.Bind("General",      // The section under which the option is shown
+                                 "PluginEnabled",  // The key of the configuration option in the configuration file
+                                 true, // The default value
+                                 "Plugin Enabled. "); // Description of the option to show in the config file
     }
 
-    private int status = 0;
     private Queue<Action> assembly_line_task_queue = new Queue<Action>();
     private void assembly_line()
     {
@@ -84,7 +137,7 @@ public partial class Plugin : BaseUnityPlugin
     }
 
     private bool execute_ops_result = true; 
-    void execute_ops()
+    void execute_tasks()
     {
         if (game_on == true)
         {
@@ -109,6 +162,7 @@ public partial class Plugin : BaseUnityPlugin
     private void OnGameOff()
     {
         assembly_line_task_queue.Clear();
+        timerPanel = null;
         Logger.LogInfo("Game off.");
     }
 
@@ -120,6 +174,11 @@ public partial class Plugin : BaseUnityPlugin
 
     private void main_loop()
     {
+        if (configPluginEnabled.Value == false)
+        {
+            return;
+        }
+
         if (timerPanel == null)
         {
             if (game_on == true)
@@ -138,24 +197,32 @@ public partial class Plugin : BaseUnityPlugin
             }
 
         }
-
-        UnityEngine.UI.Text textComponent = timerPanel.GetComponentInChildren<UnityEngine.UI.Text>();
-        if (textComponent.text.Equals("04:29"))
+        else
         {
-            if (game_on == false)
+            UnityEngine.UI.Text textComponent = timerPanel.GetComponentInChildren<UnityEngine.UI.Text>();
+            if (textComponent.text.Equals("04:29"))
             {
-                game_on = true;
-                OnGameOn();
+                if (game_on == false)
+                {
+                    game_on = true;
+                    OnGameOn();
+                }
             }
-        }
-        else if (textComponent.text.Equals("00:00"))
-        {
+            else if (textComponent.text.Equals("00:00"))
+            {
+                if (game_on == true)
+                {
+                    game_on = false;
+                    OnGameOff();
+                }
+            }
+
             if (game_on == true)
             {
-                game_on = false;
-                OnGameOff();
+                execute_tasks(); 
             }
         }
+        
     }
 
     private void InitializeObjects()

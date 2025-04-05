@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace factory_clankington;
 
-public partial class Plugin
+public partial class FcPlugin
 {
 
     private class FcObject
