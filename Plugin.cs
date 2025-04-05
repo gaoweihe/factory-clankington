@@ -486,7 +486,6 @@ public partial class FcPlugin : BaseUnityPlugin
         });
     }
 
-    // TODO: implement
     private bool check_pot_ready(AttachStation target_attachStation)
     {
         Transform attachPoint = target_attachStation.m_attachPoint;
@@ -504,7 +503,6 @@ public partial class FcPlugin : BaseUnityPlugin
         return is_pot_empty; 
     }
 
-    // TODO: implement
     private bool check_pot_ready(string target_alias)
     {
         string objectName = get_objectName_by_alias(target_alias);
