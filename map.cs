@@ -5,7 +5,7 @@ namespace factory_clankington;
 
 public partial class FcPlugin
 {
-
+    [System.Serializable]
     private class FcObject
     {
         public string Alias { get; set; }
@@ -26,6 +26,8 @@ public partial class FcPlugin
             ApproachableEulerAngle = new Vector3(0, 0, 0);
         }
     }
+
+    [System.Serializable]
     private class Maps
     {
         public static Dictionary<string, FcObject> factory = new Dictionary<string, FcObject>

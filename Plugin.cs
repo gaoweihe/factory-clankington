@@ -22,10 +22,10 @@ public static class PluginInfo
 [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 public partial class FcPlugin : BaseUnityPlugin
 {
-    public static event Action<string> OnNewOrderAdded;
+    public static event Action<List<string>> OnNewOrderAdded;
     public static event Action<string> OnNewLevelInitialized;
 
-    public static void RaiseNewOrderAdded(string orderName)
+    public static void RaiseNewOrderAdded(List<string> orderName)
     {
         OnNewOrderAdded?.Invoke(orderName);
     }
@@ -35,20 +35,23 @@ public partial class FcPlugin : BaseUnityPlugin
         OnNewLevelInitialized?.Invoke(levelName);
     }
 
-    private void HandleNewOrderAdded(string orderName)
+    private void HandleNewOrderAdded(List<string> orderName)
     {
-        Logger.LogInfo($"New order added: {orderName}");
-        active_orders.AddItem(orderName);
+        active_orders = orderName;
+        foreach (string order in active_orders)
+        {
+            Logger.LogInfo($"Active Order: {order}");
+        }
     }
 
     private void HandleNewLevelInitialized(string levelName)
     {
-        Logger.LogInfo($"New level initialized: {levelName}");
         current_level_name = levelName;
+        Logger.LogInfo($"New level initialized: {levelName}");
     }
 
-    private string[] active_orders;
-    private string[] present_ingredients; 
+    private List<string> active_orders;
+    private List<string> present_ingredients; 
 
     internal static new ManualLogSource Logger;
 
@@ -70,6 +73,7 @@ public partial class FcPlugin : BaseUnityPlugin
     private GameObject controlling_chef;
 
     private ConfigEntry<bool> configPluginEnabled;
+    private ConfigEntry<string> configLevelName;
 
     private static Harmony _harmony;
 
@@ -111,10 +115,15 @@ public partial class FcPlugin : BaseUnityPlugin
 
     private void init_config()
     {
-        configPluginEnabled = Config.Bind("General",      // The section under which the option is shown
-                                 "PluginEnabled",  // The key of the configuration option in the configuration file
-                                 true, // The default value
-                                 "Plugin Enabled. "); // Description of the option to show in the config file
+        configPluginEnabled = Config.Bind("General",
+                                 "PluginEnabled",
+                                 true,
+                                 "Plugin Enabled. ");
+
+        configLevelName = Config.Bind("General",
+                                 "LevelName",
+                                 "Day_3_4_2P",
+                                 "Level Name. ");
     }
 
     private Queue<Action> assembly_line_task_queue = new Queue<Action>();
@@ -144,7 +153,7 @@ public partial class FcPlugin : BaseUnityPlugin
             if (assembly_line_task_queue.Count > 0)
             {
                 Action next_task = assembly_line_task_queue.Peek();
-                Logger.LogInfo("Next task: " + next_task.Method.Name);
+                //Logger.LogInfo("Next task: " + next_task.Method.Name);
                 next_task?.Invoke();
 
                 if (execute_ops_result == true)
@@ -169,7 +178,7 @@ public partial class FcPlugin : BaseUnityPlugin
     private void OnGameOn() 
     {
         Logger.LogInfo("Game on.");
-        InitializeObjects();
+        init_objects();
     }
 
     private void main_loop()
@@ -225,8 +234,13 @@ public partial class FcPlugin : BaseUnityPlugin
         
     }
 
-    private void InitializeObjects()
+    private void init_objects()
     {
+        foreach (AttachStation obj in GameObject.FindObjectsOfType<AttachStation>())
+        {
+            Logger.LogInfo($"AttachStation: {obj.name}");
+        }
+        
         foreach (KeyValuePair<string, FcObject> entry in Maps.factory)
         {
             foreach (GameObject obj in GameObject.FindObjectsOfType<GameObject>())
@@ -376,10 +390,15 @@ public partial class FcPlugin : BaseUnityPlugin
         return target; 
     }
 
-    private bool check_countertop_clear(GameObject target_object)
+    private string get_objectName_by_alias(string alias)
     {
-        Transform attachPointTransform = target_object.transform.Find("AttachPoint");
-        GameObject attachPoint = attachPointTransform?.gameObject;
+        string object_name = Maps.factory[alias].Name;
+        return object_name;
+    }
+
+    private bool check_countertop_clear(AttachStation target_attachStation)
+    {
+        Transform attachPoint = target_attachStation.m_attachPoint; 
         int childCount = attachPoint?.transform.childCount ?? 0;
         if (childCount == 0)
         {
@@ -393,11 +412,14 @@ public partial class FcPlugin : BaseUnityPlugin
 
     private bool check_countertop_clear(string target_alias)
     {
-        GameObject target_object = get_object_by_alias(target_alias);
-        bool result = check_countertop_clear(target_object);
+        string objectName = get_objectName_by_alias(target_alias);
+        AttachStation target_attachStation = GameObject.Find(objectName).GetComponent<AttachStation>();
+
+        bool result = check_countertop_clear(target_attachStation);
         return result; 
     }
 
+    // TODO: implement
     private void chef_wait_countertop(string target_alias, string target_status)
     {
         assembly_line_task_queue.Enqueue(() => {
@@ -539,5 +561,13 @@ public partial class FcPlugin : BaseUnityPlugin
     private void assembly_line_serve()
     {
 
+    }
+
+    private void assembly_line_serve(int number_orders)
+    {
+        for (int i = 0; i < number_orders; i++)
+        {
+            assembly_line_serve();
+        }
     }
 }

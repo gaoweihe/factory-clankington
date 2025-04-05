@@ -9,13 +9,21 @@ using UnityEngine;
 
 namespace factory_clankington
 {
+
     [HarmonyPatch(typeof(ServerOrderControllerBase), "AddNewOrder", new Type[] { typeof(RecipeList.Entry) })]
     public static class Patch_ServerOrderControllerBase_AddNewOrder
     {
         [HarmonyPostfix]
-        static void Postfix(ref ServerOrderData __result, RecipeList.Entry _entry)
+        static void Postfix(ref ServerOrderControllerBase __instance, ref ServerOrderData __result, RecipeList.Entry _entry)
         {
-            FcPlugin.RaiseNewOrderAdded(_entry.m_order.name); 
+            List<ServerOrderData> active_orders = AccessTools.Field(__instance.GetType(), "m_activeOrders").GetValue(__instance) as List<ServerOrderData>;
+            List<string> order_name_list = new List<string>();
+            foreach (ServerOrderData curr_order in active_orders)
+            {
+                order_name_list.AddItem(curr_order.RecipeListEntry.m_order.name);
+                
+            }
+            FcPlugin.RaiseNewOrderAdded(order_name_list);
         }
     }
 
