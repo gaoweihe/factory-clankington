@@ -53,16 +53,15 @@ public partial class FcPlugin : BaseUnityPlugin
     private List<string> active_orders;
     private List<string> present_ingredients;
 
-    private List<GameObject> pots;
-    private List<GameObject> pans; 
-
     internal static new ManualLogSource Logger;
 
     private bool game_on = false;
     private GameObject timerPanel;
+
     private InputSimulator inputSimulator = new InputSimulator();
     private VirtualKeyCode key_pickdrop = VirtualKeyCode.VK_X;
     private VirtualKeyCode key_throwchop = VirtualKeyCode.VK_Z;
+    private VirtualKeyCode key_dash = VirtualKeyCode.VK_C;
 
     private string current_level_name; 
 
@@ -80,7 +79,6 @@ public partial class FcPlugin : BaseUnityPlugin
 
     private static Harmony _harmony;
 
-    //private ConfigEntry<string> magic;
     private void Awake()
     {
         Logger = base.Logger;
@@ -139,6 +137,7 @@ public partial class FcPlugin : BaseUnityPlugin
             assembly_line_buns();
             assembly_line_sausages();
             assembly_line_buns();
+            assembly_line_serve(2);
         }
     }
 
@@ -155,7 +154,6 @@ public partial class FcPlugin : BaseUnityPlugin
             if (assembly_line_task_queue.Count > 0)
             {
                 Action next_task = assembly_line_task_queue.Peek();
-                //Logger.LogInfo("Next task: " + next_task.Method.Name);
                 next_task?.Invoke();
 
                 if (execute_ops_result == true)
@@ -188,6 +186,11 @@ public partial class FcPlugin : BaseUnityPlugin
         if (configPluginEnabled.Value == false)
         {
             return;
+        }
+
+        if (current_level_name != configLevelName.Value)
+        {
+            return; 
         }
 
         if (timerPanel == null)
@@ -306,19 +309,6 @@ public partial class FcPlugin : BaseUnityPlugin
         }
         controlling_chef = chefs[controlling_chef_name];
 
-        // utensils
-        foreach (GameObject obj in GameObject.FindObjectsOfType<GameObject>())
-        {
-            if (obj.name.Equals("DLC08_utensil_pot_01"))
-            {
-                pots.Add(obj);
-                Logger.LogInfo($"Pot: {obj.name}");
-            }
-            //else if (obj.name.Equals("DLC08_utensil_pan_01"))
-            //{
-            //    pans.Add(obj);
-            //}
-        }
     }
 
     private void chef_go_to(GameObject destination_object)
@@ -349,6 +339,11 @@ public partial class FcPlugin : BaseUnityPlugin
         assembly_line_task_queue.Enqueue(() => inputSimulator.Keyboard.KeyPress(key_pickdrop));
     }
 
+    private void chef_dash()
+    {
+        assembly_line_task_queue.Enqueue(() => inputSimulator.Keyboard.KeyPress(key_dash));
+    }
+
     private void chef_turnto(string direction)
     {
         Vector3 target_eulerAngles = new Vector3(0, 0, 0);
@@ -375,7 +370,7 @@ public partial class FcPlugin : BaseUnityPlugin
             controlling_chef.transform.eulerAngles = target_eulerAngles;
         }); 
 
-        }
+    }
 
     private void chef_throwchop()
     {
@@ -448,7 +443,6 @@ public partial class FcPlugin : BaseUnityPlugin
         return result; 
     }
 
-    // TODO: implement
     private void chef_wait_countertop(string target_alias, string target_status)
     {
         assembly_line_task_queue.Enqueue(() => {
@@ -458,19 +452,6 @@ public partial class FcPlugin : BaseUnityPlugin
                 bool empty = check_countertop_clear(target_alias);
                 if (empty == true)
                 {
-                    execute_ops_result = true;
-                }
-                else
-                {
-                    execute_ops_result = false;
-                }
-            }
-            else if (target_status.Equals("engaged"))
-            {
-                bool empty = check_countertop_clear(target_alias);
-                if (empty == false)
-                {
-                    // TODO: check engaged object type
                     execute_ops_result = true;
                 }
                 else
@@ -511,46 +492,39 @@ public partial class FcPlugin : BaseUnityPlugin
         return result;
     }
 
-    private bool check_pot_engaged(string target_alias)
-    {
-        return false; 
-    }
-
-    private void chef_wait_pot(string target_alias, string target_status)
+    private void chef_wait_pot()
     {
         assembly_line_task_queue.Enqueue(() => {
+            bool ready_pot = check_pot_ready("tl_stove_1") || check_pot_ready("tl_stove_2"); 
+            bool counter_ready = check_countertop_clear("tl_countertop_1");
 
-            if (target_status.Equals("empty"))
-            {
-                bool empty = check_countertop_clear(target_alias);
-                if (empty == true)
-                {
-                    execute_ops_result = true;
-                }
-                else
-                {
-                    execute_ops_result = false;
-                }
-            }
-            else if (target_status.Equals("engaged"))
-            {
-                bool empty = check_countertop_clear(target_alias);
-                if (empty == false)
-                {
-                    // TODO: check engaged object type
-                    execute_ops_result = true;
-                }
-                else
-                {
-                    execute_ops_result = false;
-                }
-            }
-            else
-            {
-                execute_ops_result = false;
-            }
-
+            execute_ops_result = ready_pot && counter_ready;
         });
+    }
+
+    private bool check_pan_ready(AttachStation target_attachStation)
+    {
+        Transform attachPoint = target_attachStation.m_attachPoint;
+        int childCount = attachPoint?.transform.childCount ?? 0;
+        if (childCount == 0)
+        {
+            return false;
+        }
+
+        GameObject pot_gameobject = attachPoint.transform.GetChild(0).gameObject;
+        GameObject soup_gameobject = pot_gameobject.transform.Find("Content/Soup").gameObject;
+        bool is_soup_active = soup_gameobject.activeSelf;
+        bool is_pot_empty = !is_soup_active;
+
+        return is_pot_empty;
+    }
+
+    private bool check_pan_ready(string target_alias)
+    {
+        string objectName = get_objectName_by_alias(target_alias);
+        AttachStation target_attachStation = GameObject.Find(objectName).GetComponent<AttachStation>();
+        bool result = check_pan_ready(target_attachStation);
+        return result;
     }
     
     private void assembly_line_donuts()
@@ -575,12 +549,10 @@ public partial class FcPlugin : BaseUnityPlugin
 
     private void assembly_line_sausages()
     {
-        chef_wait_countertop("tl_countertop_1", "empty");
-        check_pot_ready("tl_stove_1");
+        chef_wait_pot();
         chef_goget_throwtowards("sausage_dispenser", "r");
-        
-        chef_wait_countertop("tl_countertop_1", "empty");
-        check_pot_ready("tl_stove_2");
+
+        chef_wait_pot();
         chef_goget_throwtowards("sausage_dispenser", "r");
     }
 
