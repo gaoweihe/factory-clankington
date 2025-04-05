@@ -51,7 +51,10 @@ public partial class FcPlugin : BaseUnityPlugin
     }
 
     private List<string> active_orders;
-    private List<string> present_ingredients; 
+    private List<string> present_ingredients;
+
+    private List<GameObject> pots;
+    private List<GameObject> pans; 
 
     internal static new ManualLogSource Logger;
 
@@ -87,7 +90,6 @@ public partial class FcPlugin : BaseUnityPlugin
         {
             _harmony = new Harmony(PluginInfo.PLUGIN_GUID);
             _harmony.PatchAll();
-            Logger.LogInfo("Harmony patching complete.");
         }
         catch (Exception ex)
         {
@@ -236,11 +238,7 @@ public partial class FcPlugin : BaseUnityPlugin
 
     private void init_objects()
     {
-        foreach (AttachStation obj in GameObject.FindObjectsOfType<AttachStation>())
-        {
-            Logger.LogInfo($"AttachStation: {obj.name}");
-        }
-        
+        // work stations       
         foreach (KeyValuePair<string, FcObject> entry in Maps.factory)
         {
             foreach (GameObject obj in GameObject.FindObjectsOfType<GameObject>())
@@ -249,27 +247,43 @@ public partial class FcPlugin : BaseUnityPlugin
                 {
                     FcObject target_object = entry.Value;
                     target_object.Position = obj.transform.position;
-                    target_object.ApproachablePosition = obj.transform.position;
+                    target_object.InteractablePosition = obj.transform.position;
                     // approachable offset 
-                    if (target_object.ApproachableDirection[0].Equals("t"))
+                    if (target_object.InteractableDirection[0].Equals("t"))
                     {
-                        target_object.ApproachablePosition = new Vector3(target_object.ApproachablePosition.x, target_object.ApproachablePosition.y, target_object.ApproachablePosition.z + 1.0f);
-                        target_object.ApproachableEulerAngle = new Vector3(0.0f, 180.0f, 0.0f);
+                        target_object.InteractablePosition = new Vector3(
+                            target_object.InteractablePosition.x,
+                            target_object.InteractablePosition.y,
+                            target_object.InteractablePosition.z + 1.0f
+                            );
+                        target_object.InteractableEulerAngle = new Vector3(0.0f, 180.0f, 0.0f);
                     }
-                    else if (target_object.ApproachableDirection[0].Equals("b"))
+                    else if (target_object.InteractableDirection[0].Equals("b"))
                     {
-                        target_object.ApproachablePosition = new Vector3(target_object.ApproachablePosition.x, target_object.ApproachablePosition.y, target_object.ApproachablePosition.z - 1.0f);
-                        target_object.ApproachableEulerAngle = new Vector3(0.0f, 0.0f, 0.0f);
+                        target_object.InteractablePosition = new Vector3(
+                            target_object.InteractablePosition.x,
+                            target_object.InteractablePosition.y,
+                            target_object.InteractablePosition.z - 1.0f
+                            );
+                        target_object.InteractableEulerAngle = new Vector3(0.0f, 0.0f, 0.0f);
                     }
-                    else if (target_object.ApproachableDirection[0].Equals("l"))
+                    else if (target_object.InteractableDirection[0].Equals("l"))
                     {
-                        target_object.ApproachablePosition = new Vector3(target_object.ApproachablePosition.x - 1.0f, target_object.ApproachablePosition.y, target_object.ApproachablePosition.z);
-                        target_object.ApproachableEulerAngle = new Vector3(0.0f, 90.0f, 0.0f);
+                        target_object.InteractablePosition = new Vector3(
+                            target_object.InteractablePosition.x - 1.0f,
+                            target_object.InteractablePosition.y,
+                            target_object.InteractablePosition.z
+                            );
+                        target_object.InteractableEulerAngle = new Vector3(0.0f, 90.0f, 0.0f);
                     }
-                    else if (target_object.ApproachableDirection[0].Equals("r"))
+                    else if (target_object.InteractableDirection[0].Equals("r"))
                     {
-                        target_object.ApproachablePosition = new Vector3(target_object.ApproachablePosition.x + 1.0f, target_object.ApproachablePosition.y, target_object.ApproachablePosition.z);
-                        target_object.ApproachableEulerAngle = new Vector3(0.0f, 270.0f, 0.0f);
+                        target_object.InteractablePosition = new Vector3(
+                            target_object.InteractablePosition.x + 1.0f,
+                            target_object.InteractablePosition.y,
+                            target_object.InteractablePosition.z
+                            );
+                        target_object.InteractableEulerAngle = new Vector3(0.0f, 270.0f, 0.0f);
                     }
 
                     break;
@@ -277,6 +291,7 @@ public partial class FcPlugin : BaseUnityPlugin
             }
         }
 
+        // chefs 
         chefs.Clear();
         foreach (KeyValuePair<string, string> entry in chef_names)
         {
@@ -290,6 +305,20 @@ public partial class FcPlugin : BaseUnityPlugin
             }
         }
         controlling_chef = chefs[controlling_chef_name];
+
+        // utensils
+        foreach (GameObject obj in GameObject.FindObjectsOfType<GameObject>())
+        {
+            if (obj.name.Equals("DLC08_utensil_pot_01"))
+            {
+                pots.Add(obj);
+                Logger.LogInfo($"Pot: {obj.name}");
+            }
+            //else if (obj.name.Equals("DLC08_utensil_pan_01"))
+            //{
+            //    pans.Add(obj);
+            //}
+        }
     }
 
     private void chef_go_to(GameObject destination_object)
@@ -298,7 +327,7 @@ public partial class FcPlugin : BaseUnityPlugin
         controlling_chef.transform.position = destination;
     }
 
-    private void chef_go_to(Vector3 position, Vector3 eulerAngles)
+    private void chef_go_to(Vector3 position, Vector3 eulerAngles) 
     {
         controlling_chef.transform.position = position;
         controlling_chef.transform.eulerAngles = eulerAngles;
@@ -306,8 +335,8 @@ public partial class FcPlugin : BaseUnityPlugin
 
     private void chef_go_to(FcObject destination)
     {
-        controlling_chef.transform.position = destination.ApproachablePosition;
-        controlling_chef.transform.eulerAngles = destination.ApproachableEulerAngle;
+        controlling_chef.transform.position = destination.InteractablePosition;
+        controlling_chef.transform.eulerAngles = destination.InteractableEulerAngle;
     }
 
     private void chef_go_to(string destination)
@@ -458,17 +487,35 @@ public partial class FcPlugin : BaseUnityPlugin
     }
 
     // TODO: implement
-    private bool check_pot_empty(GameObject target_object)
+    private bool check_pot_ready(AttachStation target_attachStation)
     {
-        return false; 
+        Transform attachPoint = target_attachStation.m_attachPoint;
+        int childCount = attachPoint?.transform.childCount ?? 0;
+        if (childCount == 0)
+        {
+            return false;
+        }
+
+        GameObject pot_gameobject = attachPoint.transform.GetChild(0).gameObject;
+        GameObject soup_gameobject = pot_gameobject.transform.Find("Content/Soup").gameObject;
+        bool is_soup_active = soup_gameobject.activeSelf;
+        bool is_pot_empty = !is_soup_active;
+
+        return is_pot_empty; 
     }
 
     // TODO: implement
-    private bool check_pot_empty(string target_alias)
+    private bool check_pot_ready(string target_alias)
     {
-        GameObject target_object = get_object_by_alias(target_alias);
-        bool result = check_pot_empty(target_object);
+        string objectName = get_objectName_by_alias(target_alias);
+        AttachStation target_attachStation = GameObject.Find(objectName).GetComponent<AttachStation>();
+        bool result = check_pot_ready(target_attachStation);
         return result;
+    }
+
+    private bool check_pot_engaged(string target_alias)
+    {
+        return false; 
     }
 
     private void chef_wait_pot(string target_alias, string target_status)
@@ -531,8 +578,11 @@ public partial class FcPlugin : BaseUnityPlugin
     private void assembly_line_sausages()
     {
         chef_wait_countertop("tl_countertop_1", "empty");
+        check_pot_ready("tl_stove_1");
         chef_goget_throwtowards("sausage_dispenser", "r");
+        
         chef_wait_countertop("tl_countertop_1", "empty");
+        check_pot_ready("tl_stove_2");
         chef_goget_throwtowards("sausage_dispenser", "r");
     }
 

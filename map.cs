@@ -10,20 +10,20 @@ public partial class FcPlugin
     {
         public string Alias { get; set; }
         public string Name { get; set; }
-        public List<string> ApproachableDirection { get; set; }
+        public List<string> InteractableDirection { get; set; }
 
         public Vector3 Position { get; set; }
-        public Vector3 ApproachablePosition { get; set; }
-        public Vector3 ApproachableEulerAngle { get; set; }
+        public Vector3 InteractablePosition { get; set; }
+        public Vector3 InteractableEulerAngle { get; set; }
 
         public FcObject(string alias, string name, List<string> approachable_direction)
         {
             Alias = alias;
             Name = name;
-            ApproachableDirection = approachable_direction;
+            InteractableDirection = approachable_direction;
             Position = new Vector3(0, 0, 0);
-            ApproachablePosition = new Vector3(0, 0, 0);
-            ApproachableEulerAngle = new Vector3(0, 0, 0);
+            InteractablePosition = new Vector3(0, 0, 0);
+            InteractableEulerAngle = new Vector3(0, 0, 0);
         }
     }
 
@@ -115,7 +115,7 @@ public partial class FcPlugin
                 ) 
             }, 
 
-            // utenstils
+            // cook stations
             {
                 "tl_stove_1",
                 new FcObject
